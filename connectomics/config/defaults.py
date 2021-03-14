@@ -249,6 +249,44 @@ _C.AUGMENTOR.CUTNOISE.LENGTH_RATIO = 0.4
 _C.AUGMENTOR.CUTNOISE.SCALE = 0.3
 
 # -----------------------------------------------------------------------------
+# Augmentor for UDA
+# -----------------------------------------------------------------------------
+_C.AUGMENTOR_UDA = CN()
+
+# The nearest interpolation for the label mask during data augmentation
+# can result in masks with coarse boundaries. Thus we apply Gaussian filtering
+# to smooth the object boundary (default: True).
+_C.AUGMENTOR_UDA.SMOOTH = True
+_C.AUGMENTOR_UDA.GRAYSCALE = CN({"ENABLED": True})
+_C.AUGMENTOR_UDA.GRAYSCALE.P = 0.75
+
+_C.AUGMENTOR_UDA.MISSINGPARTS = CN({"ENABLED": True})
+_C.AUGMENTOR_UDA.MISSINGPARTS.P = 0.9
+_C.AUGMENTOR_UDA.MISSINGPARTS.ITER = 64
+
+_C.AUGMENTOR_UDA.MISSINGSECTION = CN({"ENABLED": True})
+_C.AUGMENTOR_UDA.MISSINGSECTION.P = 0.5
+_C.AUGMENTOR_UDA.MISSINGSECTION.NUM_SECTION = 2
+
+_C.AUGMENTOR_UDA.MOTIONBLUR = CN({"ENABLED": True})
+_C.AUGMENTOR_UDA.MOTIONBLUR.P = 0.5
+# Number of sections along z dimension to apply motion blur
+_C.AUGMENTOR_UDA.MOTIONBLUR.SECTIONS = 2
+# Kernel size of motion blur
+_C.AUGMENTOR_UDA.MOTIONBLUR.KERNEL_SIZE = 11
+
+_C.AUGMENTOR_UDA.CUTBLUR = CN({"ENABLED": True})
+_C.AUGMENTOR_UDA.CUTBLUR.P = 0.5
+_C.AUGMENTOR_UDA.CUTBLUR.LENGTH_RATIO = 0.4
+_C.AUGMENTOR_UDA.CUTBLUR.DOWN_RATIO_MIN = 2.0
+_C.AUGMENTOR_UDA.CUTBLUR.DOWN_RATIO_MAX = 8.0
+_C.AUGMENTOR_UDA.CUTBLUR.DOWNSAMPLE_Z = False
+
+_C.AUGMENTOR_UDA.CUTNOISE = CN({"ENABLED": True})
+_C.AUGMENTOR_UDA.CUTNOISE.P = 0.75
+_C.AUGMENTOR_UDA.CUTNOISE.LENGTH_RATIO = 0.4
+_C.AUGMENTOR_UDA.CUTNOISE.SCALE = 0.3
+# -----------------------------------------------------------------------------
 # Solver
 # -----------------------------------------------------------------------------
 _C.SOLVER = CN()
