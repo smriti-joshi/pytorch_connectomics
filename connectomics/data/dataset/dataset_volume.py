@@ -260,16 +260,21 @@ class VolumeDataset(torch.utils.data.Dataset):
     def _crop_with_pos(self, pos, vol_size):
         out_volume = (crop_volume(
             self.volume[pos[0]], vol_size, pos[1:])/255.0).astype(np.float32)
-        # position in the label and valid mask
-        pos_l = np.round(pos[1:]*self.label_vol_ratio)
-        out_label = crop_volume(
-            self.label[pos[0]], self.sample_label_size, pos_l)
-        # For warping: cv2.remap requires input to be float32.
-        # Make labels index smaller. Otherwise uint32 and float32 are not
-        # the same for some values.
-        out_label = relabel(out_label.copy()).astype(np.float32)
+        
+        out_label = None
+
+        if self.label is not None:
+            # position in the label and valid mask
+            pos_l = np.round(pos[1:]*self.label_vol_ratio)
+            out_label = crop_volume(
+                self.label[pos[0]], self.sample_label_size, pos_l)
+            # For warping: cv2.remap requires input to be float32.
+            # Make labels index smaller. Otherwise uint32 and float32 are not
+            # the same for some values.
+            out_label = relabel(out_label.copy()).astype(np.float32)
 
         out_valid = None
+        
         if self.valid_mask is not None:
             out_valid = crop_volume(self.label[pos[0]],
                                     self.sample_label_size, pos_l)
