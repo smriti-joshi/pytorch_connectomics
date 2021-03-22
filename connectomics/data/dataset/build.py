@@ -9,6 +9,7 @@ import torch
 import torch.utils.data
 
 from .dataset_volume import VolumeDataset
+from .dataset_volume_ssl import VolumeDatasetUDA
 from .dataset_tile import TileDataset
 from ..utils import *
 
@@ -134,7 +135,6 @@ def _get_input(cfg, mode='train', rank=None):
                  
     return volume, label, valid_mask
 
-
 def get_dataset(cfg, augmentor, mode='train', rank=None):
     r"""Prepare dataset for training and inference.
     """
@@ -226,6 +226,70 @@ def build_dataloader(cfg, augmentor, mode='train', dataset=None, rank=None):
 
     if dataset == None:
         dataset = get_dataset(cfg, augmentor, mode, rank)
+
+    sampler = None
+    num_workers = cfg.SYSTEM.NUM_CPUS
+    if cfg.SYSTEM.DISTRIBUTED:
+        num_workers = cfg.SYSTEM.NUM_CPUS // cfg.SYSTEM.NUM_GPUS
+        if cfg.DATASET.DISTRIBUTED == False:
+            sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+
+    # In PyTorch, each worker will create a copy of the Dataset, so if the data 
+    # is preload the data, the memory usage should increase a lot.
+    # https://discuss.pytorch.org/t/define-iterator-on-dataloader-is-very-slow/52238/2
+    img_loader = torch.utils.data.DataLoader(
+        dataset, batch_size = batch_size, shuffle = False, collate_fn = cf,
+        sampler = sampler, num_workers = num_workers, pin_memory = True)
+
+    return img_loader
+    
+def get_dataset_uda(cfg, augmentor, mode='train', rank=None):
+    r"""Prepare dataset for training and inference.
+    """
+    assert mode in ['train', 'val', 'test']
+
+    label_erosion = 0
+    sample_label_size = cfg.MODEL.OUTPUT_SIZE
+    topt, wopt = ['0'], [['0']]
+    if mode == 'train':
+        sample_volume_size = augmentor.sample_size if augmentor is not None else cfg.MODEL.INPUT_SIZE
+        sample_stride = (1, 1, 1)
+        iter_num = cfg.SOLVER.ITERATION_TOTAL * cfg.SOLVER.SAMPLES_PER_BATCH 
+        if cfg.SOLVER.SWA.ENABLED:
+            iter_num += cfg.SOLVER.SWA.BN_UPDATE_ITER
+
+    shared_kwargs = {
+        "sample_volume_size": sample_volume_size,
+        "sample_label_size": sample_label_size,
+        "sample_stride": sample_stride,
+        "augmentor": augmentor,
+        "target_opt": topt,
+        "weight_opt": wopt,
+        "mode": mode,
+        "do_2d": cfg.DATASET.DO_2D,
+        "reject_size_thres": cfg.DATASET.REJECT_SAMPLING.SIZE_THRES,
+        "reject_diversity": cfg.DATASET.REJECT_SAMPLING.DIVERSITY,
+        "reject_p": cfg.DATASET.REJECT_SAMPLING.P,
+        "data_mean": cfg.DATASET.MEAN,
+        "data_std": cfg.DATASET.STD,
+    }
+    
+    volume, label, valid_mask = _get_input(cfg, mode=mode, rank=rank)
+    dataset = VolumeDatasetUDA( shared_kwargs, volume=volume, iter_num=iter_num)
+    return dataset
+
+def build_dataloader_uda(cfg, augmentor, mode='train', dataset=None, rank=None):
+    r"""Prepare dataloader for training and inference.
+    """
+    assert mode in ['train', 'val', 'test']
+    print('Mode: ', mode)
+
+    if mode == 'train':
+        cf = collate_fn_uda
+        batch_size = cfg.SOLVER.SAMPLES_PER_BATCH
+
+    if dataset == None:
+        dataset = get_dataset_uda(cfg, augmentor, mode, rank)
 
     sampler = None
     num_workers = cfg.SYSTEM.NUM_CPUS

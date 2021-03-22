@@ -13,6 +13,9 @@ def collate_fn_train(batch):
 def collate_fn_test(batch):
     return TestBatch(batch)
 
+def collate_fn_uda(batch):
+    return UDABatch(batch)
+
 ####################################################################
 ## Custom Batch Class
 ####################################################################
@@ -58,4 +61,17 @@ class TestBatch:
     # custom memory pinning method on custom type
     def pin_memory(self):
         self.out_input = self.out_input.pin_memory()
+        return self
+
+class UDABatch:
+    def __init__(self, batch):
+        pos, out_input_one, out_input_two = zip(*batch)
+        self.pos = pos
+        self.out_input_one = torch.from_numpy(np.stack(out_input_one, 0))
+        self.out_input_two = torch.from_numpy(np.stack(out_input_two, 0))
+
+       # custom memory pinning method on custom type
+    def pin_memory(self):
+        self.out_input_one = self.out_input_one.pin_memory()
+        self.out_input_two = self.out_input_two.pin_memory()
         return self

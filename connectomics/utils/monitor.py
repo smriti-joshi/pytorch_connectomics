@@ -57,7 +57,8 @@ class Logger(object):
     def output(self, iter_total, lr):
         avg = self.sum / self.count
         if self.do_print:
-            print('[Iteration %05d] train_loss=%.5f lr=%.5f' % (iter_total, avg, lr))
+            # print('[Iteration %05d] train_loss=%.5f lr=%.5f' % (iter_total, avg, lr))
+            pass
         if self.log_tb is not None:
             self.log_tb.add_scalar('Loss', avg, iter_total)
             self.log_tb.add_scalar('Learning Rate', lr, iter_total)
