@@ -39,6 +39,7 @@ _C.MODEL.WEIGHT_OPT = [['1']]
 # Choose the right loss function for each target:
 # 'WeightedMSE', 'WeightedBCE', 'JaccardLoss', 'DiceLoss'
 _C.MODEL.LOSS_OPTION = [['WeightedBCE']]
+
 # activation for the output in loss calculation
 _C.MODEL.OUTPUT_ACT = [['none']]
 

@@ -133,35 +133,23 @@ def build_train_augmentor(cfg: CfgNode, keep_uncropped: bool = False, keep_non_s
 
     return augmentor
 
-def build_ssl_augmentor(cfg):
+def build_uda_augmentor(cfg: CfgNode):
     R"""Build the data augmentor for semi-supervised learning.
     """
     aug_list = []
 
-    #1. rotate
-    if cfg.AUGMENTOR.ROTATE.ENABLED:
-        aug_list.append(
-            Rotate(rot90=True,
-                   p=cfg.AUGMENTOR.ROTATE.P))
-
-    #2. flip
-    if cfg.AUGMENTOR.FLIP.ENABLED:
-        aug_list.append(
-            Flip(do_ztrans=cfg.AUGMENTOR.FLIP.DO_ZTRANS,
-                 p=cfg.AUGMENTOR.FLIP.P))
-
     #3. grayscale
-    if cfg.AUGMENTOR.GRAYSCALE.ENABLED:
+    if cfg.AUGMENTOR_UDA.GRAYSCALE.ENABLED:
         aug_list.append(
             Grayscale(p=cfg.AUGMENTOR.GRAYSCALE.P))
 
     #4. missingparts
-    if cfg.AUGMENTOR.MISSINGPARTS.ENABLED:
+    if cfg.AUGMENTOR_UDA.MISSINGPARTS.ENABLED:
         aug_list.append(
             MissingParts(p=cfg.AUGMENTOR.MISSINGPARTS.P))
 
     #5. motion-blur
-    if cfg.AUGMENTOR.MOTIONBLUR.ENABLED:
+    if cfg.AUGMENTOR_UDA.MOTIONBLUR.ENABLED:
         aug_list.append(
             MotionBlur( 
                 sections=cfg.AUGMENTOR.MOTIONBLUR.SECTIONS, 
@@ -169,7 +157,7 @@ def build_ssl_augmentor(cfg):
                 p=cfg.AUGMENTOR.MOTIONBLUR.P))
 
     #6. cut-blur
-    if cfg.AUGMENTOR.CUTBLUR.ENABLED:
+    if cfg.AUGMENTOR_UDA.CUTBLUR.ENABLED:
         aug_list.append(
             CutBlur(length_ratio=cfg.AUGMENTOR.CUTBLUR.LENGTH_RATIO, 
                     down_ratio_min=cfg.AUGMENTOR.CUTBLUR.DOWN_RATIO_MIN,
@@ -178,7 +166,7 @@ def build_ssl_augmentor(cfg):
                     p=cfg.AUGMENTOR.CUTBLUR.P))
 
     #7. cut-noise
-    if cfg.AUGMENTOR.CUTNOISE.ENABLED:
+    if cfg.AUGMENTOR_UDA.CUTNOISE.ENABLED:
         aug_list.append(
             CutNoise(length_ratio=cfg.AUGMENTOR.CUTNOISE.LENGTH_RATIO, 
                      scale=cfg.AUGMENTOR.CUTNOISE.SCALE,

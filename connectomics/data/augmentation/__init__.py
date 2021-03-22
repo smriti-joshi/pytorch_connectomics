@@ -16,7 +16,7 @@ from .cutblur import CutBlur
 from .cutnoise import CutNoise
 from .mixup import MixupAugmentor
 
-from .build import build_train_augmentor, build_ssl_augmentor
+from .build import build_train_augmentor, build_uda_augmentor
 
 __all__ = ['Compose',
            'DataAugment', 

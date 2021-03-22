@@ -138,8 +138,8 @@ class Trainer(object):
             self.total_time += self.iter_time
             avg_iter_time = self.total_time / (iter_total+1-self.start_iter)
             est_time_left = avg_iter_time * (self.total_iter_nums+self.start_iter-iter_total-1) / 3600.0
-            print('[Iteration %05d] Data time: %.4fs, Iter time: %.4fs, Avg iter time: %.4fs, Time Left %.2fh.' % (
-                iter_total, self.data_time, self.iter_time, avg_iter_time, est_time_left))
+            # print('[Iteration %05d] Data time: %.4fs, Iter time: %.4fs, Avg iter time: %.4fs, Time Left %.2fh.' % (
+            #     iter_total, self.data_time, self.iter_time, avg_iter_time, est_time_left))
 
         # Release some GPU memory and ensure same GPU usage in the consecutive iterations according to 
         # https://discuss.pytorch.org/t/gpu-memory-consumption-increases-while-training/2770
