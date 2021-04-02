@@ -27,26 +27,47 @@ class Visualizer(object):
                 colors[0] = torch.zeros(3) # make background black
                 self.semantic_colors[topt] = torch.stack(colors, 0)
 
-    def visualize(self, volume, label, output, weight, iter_total, writer, val=False):
+    def visualize(self, volume, label, output, weight, iter_total, writer, volume_aug_1= None, volume_aug_2= None, label_aug_1 = None, label_aug_2 = None, val=False):
         # split the prediction into chunks along the channel dimension
         output = self.act(output)
         assert len(output) == len(label)
 
+        if self.cfg.MODEL.UDA:
+            label_aug_1 = self.act(label_aug_1)
+            label_aug_2 = self.act(label_aug_2)
+            assert len(label_aug_1) == len(label)
+            assert len(label_aug_2) == len(label)
+          
         for idx in range(len(self.cfg.MODEL.TARGET_OPT)):
             topt = self.cfg.MODEL.TARGET_OPT[idx]
             if topt[0] == '9':
                 output[idx] = self.get_semantic_map(output[idx], topt)
                 label[idx] = self.get_semantic_map(label[idx], topt, argmax=False)
+                if self.cfg.MODEL.UDA:
+                    label_aug_1[idx] = self.get_semantic_map(label_aug_1[idx], topt)
+                    label_aug_2[idx] = self.get_semantic_map(label_aug_2[idx], topt)
+
             if topt[0] == '5':
                 output[idx] = decode_quantize(output[idx], mode='max').unsqueeze(1)
                 temp_label = label[idx].copy().astype(np.float32)[:, np.newaxis]
                 label[idx] = temp_label / temp_label.max() + 1e-6
+                if self.cfg.MODEL.UDA:
+                    label_aug_1[idx] = decode_quantize(label_aug_1[idx], mode='max') #.unsqueeze(1)
+                    label_aug_2[idx] = decode_quantize(label_aug_2[idx], mode='max') #.unsqueeze(1)
+                    # temp_label = label_aug_1[idx].copy().astype(np.float32)[:, np.newaxis]
+                    # label[idx] = temp_label / temp_label.max() + 1e-6
 
             RGB = (topt[0] in ['1', '2', '9'])
             vis_name = self.cfg.MODEL.TARGET_OPT[idx] + '_' + str(idx)
             if val: vis_name = vis_name + '_Val'
             if isinstance(label[idx], (np.ndarray, np.generic)):
                 label[idx] = torch.from_numpy(label[idx])
+            
+            # if self.cfg.MODEL.UDA:
+            #     if isinstance(label_aug_1[idx], (np.ndarray, np.generic)):
+            #         label_aug_1[idx] = torch.from_numpy(label_aug_1[idx])
+            #     if isinstance(label_aug_2[idx], (np.ndarray, np.generic)):
+            #         label_aug_2[idx] = torch.from_numpy(label_aug_2[idx])
             
             weight_maps = {}
             for j, wopt in enumerate(self.cfg.MODEL.WEIGHT_OPT[idx]):
@@ -55,22 +76,31 @@ class Visualizer(object):
                     weight_maps[w_name] = weight[idx][j]
 
             self.visualize_consecutive(volume, label[idx], output[idx], weight_maps, iter_total, 
-                                       writer, RGB=RGB, vis_name=vis_name)
+                                       writer, volume_aug_1, volume_aug_2, label_aug_1[idx], label_aug_2[idx], RGB=RGB, vis_name=vis_name)
 
     def visualize_consecutive(self, volume, label, output, weight_maps, iteration, 
-                              writer, RGB=False, vis_name='0_0'):
-        volume, label, output, weight_maps = self.prepare_data(volume, label, output, weight_maps)
+                              writer, volume_aug_1, volume_aug_2, label_aug_1, label_aug_2, RGB=False, vis_name='0_0'):
+
+        volume, label, output, weight_maps, volume_aug_1, volume_aug_2, label_aug_1, label_aug_2 = self.prepare_data(volume, label, output, weight_maps, volume_aug_1, volume_aug_2, label_aug_1, label_aug_2)
+        
         sz = volume.size() # z,c,y,x
         canvas = []
         volume_visual = volume.detach().cpu().expand(sz[0],3,sz[2],sz[3])
+
         canvas.append(volume_visual)
 
         if RGB:
             output_visual = [output.detach().cpu()]
             label_visual = [label.detach().cpu()]
+            if self.cfg.MODEL.UDA:
+                label_aug_1_visual = [label_aug_1.detach().cpu()]
+                label_aug_2_visual = [label_aug_2.detach().cpu()]
         else:
             output_visual = [self.vol_reshape(output[:,i], sz) for i in range(sz[1])]
             label_visual = [self.vol_reshape(label[:,i], sz) for i in range(sz[1])]
+            if self.cfg.MODEL.UDA:
+                label_aug_1_visual = [self.vol_reshape(label_aug_1[:,i], sz) for i in range(sz[1])]
+                label_aug_2_visual = [self.vol_reshape(label_aug_2[:,i], sz) for i in range(sz[1])]
 
         weight_visual = []
         for key in weight_maps.keys():
@@ -79,10 +109,22 @@ class Visualizer(object):
         canvas = canvas + output_visual + label_visual + weight_visual
         canvas_merge = torch.cat(canvas, 0)
         canvas_show = vutils.make_grid(canvas_merge, nrow=8, normalize=True, scale_each=True)
-
         writer.add_image('Consecutive_%s' % vis_name, canvas_show, iteration)
 
-    def prepare_data(self, volume, label, output, weight_maps):
+        
+        if self.cfg.MODEL.UDA:
+            canvas_uda = []
+            volume_aug_1_visual = volume_aug_1.detach().cpu().expand(sz[0],3,sz[2],sz[3])
+            volume_aug_2_visual = volume_aug_2.detach().cpu().expand(sz[0],3,sz[2],sz[3])
+            canvas_uda.append(volume_aug_1_visual)
+            canvas_uda.append(volume_aug_2_visual)
+
+            canvas_uda = canvas_uda + label_aug_1_visual + label_aug_2_visual
+            canvas_merge = torch.cat(canvas_uda, 0)
+            canvas_show_uda = vutils.make_grid(canvas_merge, nrow=8, normalize=True, scale_each=True)
+            writer.add_image('Consecutive_uda%s' % vis_name, canvas_show_uda, iteration)
+
+    def prepare_data(self, volume, label, output, weight_maps, volume_aug_1, volume_aug_2, label_aug_1, label_aug_2):
         ndim = volume.ndim
         assert ndim in [4, 5] 
         is_3d = (ndim == 5)
@@ -90,10 +132,17 @@ class Visualizer(object):
         volume = self.permute_truncate(volume, is_3d)
         label = self.permute_truncate(label, is_3d)
         output = self.permute_truncate(output, is_3d)
+
+        if self.cfg.MODEL.UDA:
+            volume_aug_1 = self.permute_truncate(volume_aug_1, is_3d)
+            volume_aug_2 = self.permute_truncate(volume_aug_2, is_3d)
+            label_aug_1 = self.permute_truncate(label_aug_1, is_3d)
+            label_aug_2 = self.permute_truncate(label_aug_2, is_3d)
+
         for key in weight_maps.keys():
             weight_maps[key] = self.permute_truncate(weight_maps[key], is_3d)
 
-        return volume, label, output, weight_maps
+        return volume, label, output, weight_maps, volume_aug_1, volume_aug_2, label_aug_1, label_aug_2
 
     def permute_truncate(self, data, is_3d=False):
         if is_3d:

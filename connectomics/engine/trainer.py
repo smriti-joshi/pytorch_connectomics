@@ -43,8 +43,8 @@ class Trainer(object):
         self.output_dir = cfg.DATASET.OUTPUT_PATH
         self.mode = mode
         self.is_main_process = rank is None or rank == 0
-
         self.model = build_model(self.cfg, self.device, rank)
+
         if self.mode == 'train':
             self.optimizer = build_optimizer(self.cfg, self.model)
             self.lr_scheduler = build_lr_scheduler(self.cfg, self.optimizer)
@@ -107,7 +107,7 @@ class Trainer(object):
 
         self.maybe_save_swa_model()
 
-    def _train_misc(self, loss, pred, volume, target, weight, 
+    def _train_misc(self, loss, pred, volume, target, weight, aug_volume_one, aug_volume_two, pred_one, pred_two, 
                     iter_total, losses_vis):
         self.backward_pass(loss) # backward pass
 
@@ -116,7 +116,8 @@ class Trainer(object):
             do_vis = self.monitor.update(iter_total, loss, losses_vis,
                                          self.optimizer.param_groups[0]['lr']) 
             if do_vis:
-                self.monitor.visualize(volume, target, pred, weight, iter_total)
+                self.monitor.visualize(volume, target, pred, weight, iter_total, 
+                                    aug_volume_one,aug_volume_two, pred_one, pred_two)
                 if torch.cuda.is_available(): GPUtil.showUtilization(all=True)
 
             if iter_total - self.start_iter == 0:
