@@ -140,3 +140,16 @@ class Criterion(object):
         return cls(device, cfg.MODEL.TARGET_OPT, cfg.MODEL.LOSS_OPTION, cfg.MODEL.OUTPUT_ACT, 
                    cfg.MODEL.LOSS_WEIGHT, cfg.MODEL.REGU_OPT, cfg.MODEL.REGU_TARGET, 
                    cfg.MODEL.REGU_WEIGHT, do_2d=cfg.DATASET.DO_2D)
+    
+    @classmethod
+    def build_from_cfg_uda(cls, cfg, device):
+        """Build a Criterion class based on the config options.
+
+        Args:
+            cfg (yacs.config.CfgNode): YACS configuration options.
+            device (torch.device): model running device type. GPUs are recommended for model training and inference.
+        """
+        return cls(device, cfg.MODEL.TARGET_OPT_UDA, cfg.MODEL.LOSS_OPTION_UDA, cfg.MODEL.OUTPUT_ACT_UDA, 
+                   cfg.MODEL.LOSS_WEIGHT_UDA, cfg.MODEL.REGU_OPT_UDA, cfg.MODEL.REGU_TARGET_UDA, 
+                   cfg.MODEL.REGU_WEIGHT_UDA, do_2d=cfg.DATASET.DO_2D)
+    

@@ -60,7 +60,7 @@ def _get_file_list(name: str) -> list:
 
     return name.split('@')
 
-def _get_input(cfg, mode='train', rank=None):
+def _get_input(cfg, mode='train', uda = False, rank=None):
     r"""Load the inputs specified by the configuration options.
     """
     assert mode in ['train', 'val', 'test']
@@ -99,6 +99,21 @@ def _get_input(cfg, mode='train', rank=None):
     read_fn = readvol if not cfg.DATASET.LOAD_2D else readimg_as_vol
     for i in range(len(img_name)):
         volume[i] = read_fn(img_name[i])
+
+        #####################################################
+        # Trial to divide the dataset into source and val for 
+        # the time being
+
+        volume_sup = volume[i][0:60,:,:]
+        volume_uda = volume[i][60:100,:, :]
+        
+        if uda:
+            volume[i] = volume_uda
+        else:
+            volume[i] = volume_sup
+        
+        ######################################################
+
         print(f"volume shape (original): {volume[i].shape}")
         if cfg.DATASET.NORMALIZE_RANGE:
             volume[i] = normalize_range(volume[i])
@@ -202,7 +217,7 @@ def get_dataset(cfg, augmentor, mode='train', rank=None):
                               **shared_kwargs)
 
     else: # build VolumeDataset
-        volume, label, valid_mask = _get_input(cfg, mode=mode, rank=rank)
+        volume, label, valid_mask = _get_input(cfg, mode=mode, rank=rank, uda = False)
         dataset = VolumeDataset(volume=volume, label=label, valid_mask=valid_mask,
                                 iter_num=iter_num, **shared_kwargs)
 
@@ -274,7 +289,7 @@ def get_dataset_uda(cfg, augmentor, mode='train', rank=None):
         "data_std": cfg.DATASET.STD,
     }
     
-    volume, label, valid_mask = _get_input(cfg, mode=mode, rank=rank)
+    volume, label, valid_mask = _get_input(cfg, mode=mode, uda = True, rank=rank)
     dataset = VolumeDatasetUDA( shared_kwargs, volume=volume, iter_num=iter_num)
     return dataset
 
