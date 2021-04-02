@@ -5,8 +5,8 @@ SYSTEM:
   NUM_CPUS: 12
 
 MODEL:
-  INPUT_SIZE: [4, 128, 128]
-  OUTPUT_SIZE: [4, 128, 128]
+  INPUT_SIZE: [5, 129, 129]
+  OUTPUT_SIZE: [5, 129, 129]
   IN_PLANES: 1
   OUT_PLANES: 3
   TARGET_OPT: ["2"]
@@ -15,7 +15,8 @@ MODEL:
   WEIGHT_OPT: [["1", "0"]]
   OUTPUT_ACT: [["none", "sigmoid"]]
   NORM_MODE: "sync_bn"
-
+  UDA: True
+  
 DATASET:
   IMAGE_NAME: 'train-input.tif'
   LABEL_NAME: 'train-labels.tif'
@@ -32,8 +33,8 @@ SOLVER:
   ITERATION_TOTAL: 100000
   SAMPLES_PER_BATCH: 2
 INFERENCE:
-  INPUT_SIZE: [4, 128, 128]
-  OUTPUT_SIZE: [4, 128, 128]
+  INPUT_SIZE: [5, 129, 129]
+  OUTPUT_SIZE: [5, 129, 129] # odd because detectron paper says that better on border with odd values
   OUTPUT_ACT: ["sigmoid"]
   IMAGE_NAME: "test-input.tif" # or path to your test images
   OUTPUT_PATH: "outputs/SNEMI3D/test"

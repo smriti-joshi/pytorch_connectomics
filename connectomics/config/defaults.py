@@ -26,6 +26,7 @@ _C.MODEL.ARCHITECTURE = 'unet_3d'
 _C.MODEL.BLOCK_TYPE = 'residual'
 _C.MODEL.BACKBONE = 'resnet'
 _C.MODEL.DEPLOY_MODE = False
+_C.MODEL.UDA = False
 
 # Number of filters per unet block
 _C.MODEL.FILTERS = [28, 36, 48, 64, 80]
@@ -33,18 +34,21 @@ _C.MODEL.FILTERS = [28, 36, 48, 64, 80]
 _C.MODEL.ISOTROPY = [False, False, False, True, True]
 
 _C.MODEL.TARGET_OPT = ['0']
+_C.MODEL.TARGET_OPT_UDA = ['0']
 
 _C.MODEL.WEIGHT_OPT = [['1']]
+_C.MODEL.WEIGHT_OPT_UDA = [['1']]
 
 # Choose the right loss function for each target:
 # 'WeightedMSE', 'WeightedBCE', 'JaccardLoss', 'DiceLoss'
 _C.MODEL.LOSS_OPTION = [['WeightedBCE']]
-
+_C.MODEL.LOSS_OPTION_UDA = [['WeightedMSE']]
 # activation for the output in loss calculation
 _C.MODEL.OUTPUT_ACT = [['none']]
-
+_C.MODEL.OUTPUT_ACT_UDA = [['none']]
 # Weight for each loss function
 _C.MODEL.LOSS_WEIGHT = [[1.0]]
+_C.MODEL.LOSS_WEIGHT_UDA = [[1.0]]
 
 # Define the number of input channels. Usually EM images are
 # single-channel gray-scale image.
@@ -82,6 +86,9 @@ _C.MODEL.REGU_OPT = None
 _C.MODEL.REGU_TARGET = None
 _C.MODEL.REGU_WEIGHT = None
 
+_C.MODEL.REGU_OPT_UDA = None
+_C.MODEL.REGU_TARGET_UDA = None
+_C.MODEL.REGU_WEIGHT_UDA = None
 # Fine-tune suffix for model saving
 _C.MODEL.FINETUNE = ''
 
@@ -335,7 +342,7 @@ _C.SOLVER.WARMUP_METHOD = "linear"
 
 # Number of samples per GPU. If we have 8 GPUs and SAMPLES_PER_BATCH = 2,
 # then each GPU will see 2 samples and the effective batch size is 16.
-_C.SOLVER.SAMPLES_PER_BATCH = 2
+_C.SOLVER.SAMPLES_PER_BATCH = 4
 
 # Gradient clipping
 _C.SOLVER.CLIP_GRADIENTS = CN({"ENABLED": False})
