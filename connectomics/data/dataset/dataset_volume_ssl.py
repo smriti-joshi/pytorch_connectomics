@@ -23,20 +23,20 @@ class VolumeDatasetUDA(VolumeDataset):
             return self._process_targets(sample)
 
     def _process_targets(self, sample):
-        pos, out_volume, out_volume_aug = sample
+        pos, out_volume_aug_one, out_volume_aug_two = sample
 
         if self.do_2d:
-            out_volume = np.squeeze(out_volume)
-            out_volume_aug = np.squeeze(out_volume_aug)
+            out_volume_aug_one = np.squeeze(out_volume_aug_one)
+            out_volume_aug_two = np.squeeze(out_volume_aug_two)
 
-        out_volume = np.expand_dims(out_volume, 0)
-        out_volume = normalize_image(out_volume, self.data_mean, self.data_std)
+        out_volume_aug_one = np.expand_dims(out_volume_aug_one, 0)
+        out_volume_aug_one = normalize_image(out_volume_aug_one, self.data_mean, self.data_std)
         
-        out_volume_aug = np.expand_dims(out_volume_aug, 0)
-        out_volume_aug = normalize_image(out_volume_aug, self.data_mean, self.data_std)
+        out_volume_aug_two = np.expand_dims(out_volume_aug_two, 0)
+        out_volume_aug_two = normalize_image(out_volume_aug_two, self.data_mean, self.data_std)
         # output list
         
-        return pos, out_volume, out_volume_aug
+        return pos, out_volume_aug_one, out_volume_aug_two
     
     def _get_uda_samples(self, vol_size):
         """Rejection sampling to filter out samples without required number 
