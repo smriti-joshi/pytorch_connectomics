@@ -107,8 +107,8 @@ class Trainer(object):
 
         self.maybe_save_swa_model()
 
-    def _train_misc(self, loss, pred, volume, target, weight, aug_volume_one, aug_volume_two, pred_one, pred_two, 
-                    iter_total, losses_vis):
+    def _train_misc(self, loss, pred, volume, target, weight,iter_total, losses_vis, aug_volume_one = None, aug_volume_two= None, 
+                    pred_one= None, pred_two= None):
         self.backward_pass(loss) # backward pass
 
         # logging and update record

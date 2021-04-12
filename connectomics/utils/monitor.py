@@ -57,7 +57,7 @@ class Logger(object):
     def output(self, iter_total, lr):
         avg = self.sum / self.count
         if self.do_print:
-            # print('[Iteration %05d] train_loss=%.5f lr=%.5f' % (iter_total, avg, lr))
+            print('[Iteration %05d] train_loss=%.5f lr=%.5f' % (iter_total, avg, lr))
             pass
         if self.log_tb is not None:
             self.log_tb.add_scalar('Loss', avg, iter_total)
@@ -94,7 +94,8 @@ class Monitor(object):
                 do_vis = self.do_vis
         return do_vis
 
-    def visualize(self, volume, label, output, weight, iter_total, volume_aug_1, volume_aug_2, label_aug_1, label_aug_2, val=False):
+    def visualize(self, volume, label, output, weight, iter_total, volume_aug_1= None, volume_aug_2= None, 
+                                                                label_aug_1= None, label_aug_2= None, val=False):
         self.vis.visualize(volume, label, output, weight, 
                            iter_total, self.logger.log_tb, volume_aug_1, volume_aug_2, label_aug_1, label_aug_2,  val)
 

@@ -43,7 +43,7 @@ class TrainerUDA(Trainer):
         super().__init__(cfg, device, mode, rank,
                       checkpoint)
 
-        self.lmd = 0.5
+        self.lmd = 2
         assert mode in ['train', 'test']
         
         self.augmentor_ssl = build_uda_augmentor(self.cfg)
@@ -93,16 +93,23 @@ class TrainerUDA(Trainer):
 
             with autocast(enabled=self.cfg.MODEL.MIXED_PRECESION):
                 pred_one = self.model(aug_volume_one)
+                pred_one_mask = pred_one > 0.5
                 pred_two = self.model(aug_volume_two)
-                loss_ssl = self.weighted_mse_loss(pred_one, pred_two)
+                pred_two_mask = pred_two > 0.5
+
+                fin_mask = pred_one_mask * pred_two_mask
+                pred_one_update = pred_one * fin_mask
+                pred_two_update = pred_two * fin_mask
+                
+                loss_ssl = self.weighted_mse_loss(pred_one_update, pred_two_update)
             
             loss = self.lmd * loss_sup +  loss_ssl
 
             losses_vis['uda_mse_loss'] = loss_ssl
             losses_vis['sup_loss'] = loss_sup
 
-            self._train_misc(loss, pred, volume, target, weight, aug_volume_one,aug_volume_two, pred_one, pred_two,
-                             iter_total, losses_vis)
+            self._train_misc(loss, pred, volume, target, weight,iter_total, losses_vis, aug_volume_one,aug_volume_two, 
+                pred_one, pred_two)
             if i % 10 == 0:
                 print('[Iteration %05d] supervised_loss=%.5f ssl_loss=%.5f' % (i, loss_sup, loss_ssl))
         self.maybe_save_swa_model()

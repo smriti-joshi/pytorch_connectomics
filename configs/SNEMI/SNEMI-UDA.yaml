@@ -16,22 +16,29 @@ MODEL:
   OUTPUT_ACT: [["none", "sigmoid"]]
   NORM_MODE: "sync_bn"
   UDA: True
+  PRE_MODEL_ITER: 0
   
 DATASET:
-  IMAGE_NAME: 'train-input.tif'
-  LABEL_NAME: 'train-labels.tif'
-  INPUT_PATH: '/net/travail/smjoshi/harvard/dataset/train/' # or your own dataset path
+  IMAGE_NAME: 'train-input.h5'
+  LABEL_NAME: 'train-labels.h5'
+  INPUT_PATH: '/net/cremi/smjoshi/espaces/travail/harvard/dev_pyco/pytorch_connectomics/SNEMI3D/train'
   OUTPUT_PATH: '/net/cremi/smjoshi/espaces/travail/harvard/dev_pyco/pytorch_connectomics/output'
   PAD_SIZE: [4, 64, 64]
   LABEL_EROSION: 1
 
+UDA_DATASET:
+  IMAGE_NAME: 'valid_image.h5'
+  LABEL_NAME: 'valid_label.h5'
+  INPUT_PATH: '/net/cremi/smjoshi/espaces/travail/harvard/dev_pyco/pytorch_connectomics/SNEMI3D/val' # or your own dataset path
+  OUTPUT_PATH: '/net/cremi/smjoshi/espaces/travail/harvard/dev_pyco/pytorch_connectomics/output'
+
 SOLVER:
   LR_SCHEDULER_NAME: "WarmupCosineLR"
-  BASE_LR: 0.001
+  BASE_LR: 0.001 # lower LR does not decrease the loss
   ITERATION_STEP: 1
   ITERATION_SAVE: 5000
   ITERATION_TOTAL: 100000
-  SAMPLES_PER_BATCH: 2
+  SAMPLES_PER_BATCH: 8
 INFERENCE:
   INPUT_SIZE: [5, 129, 129]
   OUTPUT_SIZE: [5, 129, 129] # odd because detectron paper says that better on border with odd values

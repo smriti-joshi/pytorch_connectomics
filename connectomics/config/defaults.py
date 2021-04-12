@@ -185,6 +185,25 @@ _C.DATASET.STD = 0.5
 _C.DATASET.DISTRIBUTED = False
 
 # -----------------------------------------------------------------------------
+# Dataset for UDA
+# -----------------------------------------------------------------------------
+_C.UDA_DATASET = CN()
+
+# Specify the data path in the *.yaml files for different experiments.
+_C.UDA_DATASET.IMAGE_NAME = 'train_image.h5'
+_C.UDA_DATASET.LABEL_NAME = None
+_C.UDA_DATASET.VALID_MASK_NAME = None
+
+_C.UDA_DATASET.VAL_IMAGE_NAME = None
+_C.UDA_DATASET.VAL_LABEL_NAME = None
+_C.UDA_DATASET.VAL_VALID_MASK_NAME = None
+_C.UDA_DATASET.VAL_PAD_SIZE = [0, 0, 0]
+
+_C.UDA_DATASET.LABEL_VAST = False
+_C.UDA_DATASET.INPUT_PATH = 'path/to/input'
+_C.UDA_DATASET.OUTPUT_PATH = 'path/to/output'
+_C.UDA_DATASET.IS_ABSOLUTE_PATH = False
+# -----------------------------------------------------------------------------
 # Augmentor
 # -----------------------------------------------------------------------------
 _C.AUGMENTOR = CN()

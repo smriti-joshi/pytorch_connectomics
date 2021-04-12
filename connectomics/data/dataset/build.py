@@ -64,18 +64,30 @@ def _get_input(cfg, mode='train', uda = False, rank=None):
     r"""Load the inputs specified by the configuration options.
     """
     assert mode in ['train', 'val', 'test']
-    dir_name = _get_file_list(cfg.DATASET.INPUT_PATH)
-
-    if mode == 'val':
-        img_name = cfg.DATASET.VAL_IMAGE_NAME
-        label_name = cfg.DATASET.VAL_LABEL_NAME
-        valid_mask_name = cfg.DATASET.VAL_VALID_MASK_NAME
-        pad_size = cfg.DATASET.VAL_PAD_SIZE
+    if uda:
+        dir_name = _get_file_list(cfg.UDA_DATASET.INPUT_PATH)
+        if mode == 'val':
+            img_name = cfg.UDA_DATASET.VAL_IMAGE_NAME
+            label_name = cfg.UDA_DATASET.VAL_LABEL_NAME
+            valid_mask_name = cfg.UDA_DATASET.VAL_VALID_MASK_NAME
+            pad_size = cfg.DATASET.VAL_PAD_SIZE
+        else:
+            img_name = cfg.UDA_DATASET.IMAGE_NAME
+            label_name = cfg.UDA_DATASET.LABEL_NAME
+            valid_mask_name = cfg.UDA_DATASET.VALID_MASK_NAME
+            pad_size = cfg.DATASET.PAD_SIZE 
     else:
-        img_name = cfg.DATASET.IMAGE_NAME
-        label_name = cfg.DATASET.LABEL_NAME
-        valid_mask_name = cfg.DATASET.VALID_MASK_NAME
-        pad_size = cfg.DATASET.PAD_SIZE        
+        dir_name = _get_file_list(cfg.DATASET.INPUT_PATH)
+        if mode == 'val':
+            img_name = cfg.DATASET.VAL_IMAGE_NAME
+            label_name = cfg.DATASET.VAL_LABEL_NAME
+            valid_mask_name = cfg.DATASET.VAL_VALID_MASK_NAME
+            pad_size = cfg.DATASET.VAL_PAD_SIZE
+        else:
+            img_name = cfg.DATASET.IMAGE_NAME
+            label_name = cfg.DATASET.LABEL_NAME
+            valid_mask_name = cfg.DATASET.VALID_MASK_NAME
+            pad_size = cfg.DATASET.PAD_SIZE        
 
     img_name = _get_file_list(img_name)
     img_name = _make_path_list(cfg, dir_name, img_name, rank)
@@ -104,13 +116,13 @@ def _get_input(cfg, mode='train', uda = False, rank=None):
         # Trial to divide the dataset into source and val for 
         # the time being
 
-        volume_sup = volume[i][0:60,:,:]
-        volume_uda = volume[i][60:100,:, :]
+        # volume_sup = volume[i][0:60,:,:]
+        # volume_uda = volume[i][60:100,:, :]
         
-        if uda:
-            volume[i] = volume_uda
-        else:
-            volume[i] = volume_sup
+        # if uda:
+        #     volume[i] = volume_uda
+        # else:
+        #     volume[i] = volume_sup
         
         ######################################################
 
