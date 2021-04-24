@@ -67,7 +67,7 @@ def main():
 
     mode = 'test' if args.inference else 'train'
 
-    if cfg.MODEL.UDA:
+    if cfg.MODEL.UDA and mode == 'train':
         trainer = TrainerUDA(cfg, device, mode, 
                     rank=args.local_rank,
                     checkpoint=args.checkpoint)
