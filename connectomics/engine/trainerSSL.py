@@ -25,7 +25,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 class TrainerUDA(Trainer):
     r"""Trainer class for supervised learning.
-
     Args:
         cfg (yacs.config.CfgNode): YACS configuration options.
         device (torch.device): model running device. GPUs are recommended for model training and inference.
@@ -61,6 +60,7 @@ class TrainerUDA(Trainer):
         r"""Training function of the trainer class.
         """
         self.model.train()
+        sigmoid = nn.Sigmoid()
 
         for i in range(self.total_iter_nums):
             iter_total = self.start_iter + i
@@ -92,16 +92,12 @@ class TrainerUDA(Trainer):
             aug_volume_two = aug_volume_two.to(self.device, non_blocking=True)
 
             with autocast(enabled=self.cfg.MODEL.MIXED_PRECESION):
-                pred_one = self.model(aug_volume_one)
-                pred_one_mask = pred_one > 0.5
-                pred_two = self.model(aug_volume_two)
-                pred_two_mask = pred_two > 0.5
+                pred_one = sigmoid(self.model(aug_volume_one))
+                pred_two = sigmoid(self.model(aug_volume_two))
+            
+                mask = (pred_one > 0.5) * (pred_two > 0.5)
 
-                fin_mask = pred_one_mask * pred_two_mask
-                pred_one_update = pred_one * fin_mask
-                pred_two_update = pred_two * fin_mask
-                
-                loss_ssl = self.weighted_mse_loss(pred_one_update, pred_two_update)
+                loss_ssl = self.weighted_mse_loss(pred_one * mask, pred_two * mask)
             
             loss = self.lmd * loss_sup +  loss_ssl
 
