@@ -42,7 +42,7 @@ class TrainerUDA(Trainer):
         super().__init__(cfg, device, mode, rank,
                       checkpoint)
 
-        self.lmd = 2
+        # self.lmd = 4
         assert mode in ['train', 'test']
         
         self.augmentor_ssl = build_uda_augmentor(self.cfg)
@@ -98,11 +98,17 @@ class TrainerUDA(Trainer):
                 mask = (pred_one > 0.5) * (pred_two > 0.5)
 
                 loss_ssl = self.weighted_mse_loss(pred_one * mask, pred_two * mask)
+
+                loss_entrp = torch.abs(torch.sum(-sigmoid(pred) * torch.log(sigmoid(pred) + (sigmoid(pred) == 0).float())) 
+                            - 0.5 * (torch.sum(-pred_one * torch.log(pred_one + (pred_one == 0).float())) + 
+                            torch.sum(-pred_two * torch.log(pred_two + (pred_two == 0).float()))))
             
-            loss = self.lmd * loss_sup +  loss_ssl
+            # loss = loss_sup +  10 * loss_ssl #+ 0.0001 * loss_entrp log2021-04-24_17-55-30
+            loss = loss_sup + 10 * loss_ssl + + 0.0001 * loss_entrp
 
             losses_vis['uda_mse_loss'] = loss_ssl
             losses_vis['sup_loss'] = loss_sup
+            losses_vis['entrp_loss'] = loss_entrp
 
             self._train_misc(loss, pred, volume, target, weight,iter_total, losses_vis, aug_volume_one,aug_volume_two, 
                 pred_one, pred_two)
