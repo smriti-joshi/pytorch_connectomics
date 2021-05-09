@@ -10,8 +10,9 @@ from ..utils import *
 
 class VolumeDatasetUDA(VolumeDataset):
 
-    def __init__(self,shared_kwargs, volume,iter_num):
+    def __init__(self,shared_kwargs, volume, volume_track, iter_num):
         super(VolumeDatasetUDA, self).__init__(volume = volume, iter_num = iter_num, **shared_kwargs)
+        self.volume_track = (volume_track/255.0).astype(np.float32)
 
     def __getitem__(self, index):
         # orig input: keep uint/int format to save cpu memory
@@ -23,7 +24,7 @@ class VolumeDatasetUDA(VolumeDataset):
             return self._process_targets(sample)
 
     def _process_targets(self, sample):
-        pos, out_volume_aug_one, out_volume_aug_two = sample
+        pos, out_volume_aug_one, out_volume_aug_two, out_volume_aug_track = sample
 
         if self.do_2d:
             out_volume_aug_one = np.squeeze(out_volume_aug_one)
@@ -35,8 +36,14 @@ class VolumeDatasetUDA(VolumeDataset):
         out_volume_aug_two = np.expand_dims(out_volume_aug_two, 0)
         out_volume_aug_two = normalize_image(out_volume_aug_two, self.data_mean, self.data_std)
         # output list
+        out_volume_track = self.volume_track
+        out_volume_track = np.expand_dims(out_volume_track, 0)
+        out_volume_track = normalize_image(out_volume_track, self.data_mean, self.data_std)
+
+        out_volume_aug_track = np.expand_dims(out_volume_aug_track, 0)
+        out_volume_aug_track = normalize_image(out_volume_aug_track, self.data_mean, self.data_std)
         
-        return pos, out_volume_aug_one, out_volume_aug_two
+        return pos, out_volume_aug_one, out_volume_aug_two, out_volume_track, out_volume_aug_track
     
     def _get_uda_samples(self, vol_size):
         """Rejection sampling to filter out samples without required number 
@@ -51,8 +58,12 @@ class VolumeDatasetUDA(VolumeDataset):
 
             augmented = self.augmentor(data)
             out_volume_aug_one = augmented['image']
+            
+            data = {'image': self.volume_track}
+            augmented_track = self.augmentor(data)
+            out_volume_aug_track = augmented_track['image']
 
-            augmented = self.augmentor(data)
-            out_volume_aug_two = augmented['image']
+            # augmented = self.augmentor(data)
+            # out_volume_aug_two = augmented['image']
 
-        return pos, out_volume_aug_one, out_volume_aug_two
+        return pos, out_volume, out_volume_aug_one, out_volume_aug_track

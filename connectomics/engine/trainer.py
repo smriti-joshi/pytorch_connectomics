@@ -108,7 +108,7 @@ class Trainer(object):
         self.maybe_save_swa_model()
 
     def _train_misc(self, loss, pred, volume, target, weight,iter_total, losses_vis, aug_volume_one = None, aug_volume_two= None, 
-                    pred_one= None, pred_two= None):
+                    pred_one= None, pred_two= None, volume_track = None, pred_track = None, volume_aug_track = None, pred_aug_track = None):
         self.backward_pass(loss) # backward pass
 
         # logging and update record
@@ -117,7 +117,7 @@ class Trainer(object):
                                          self.optimizer.param_groups[0]['lr']) 
             if do_vis:
                 self.monitor.visualize(volume, target, pred, weight, iter_total, 
-                                    aug_volume_one,aug_volume_two, pred_one, pred_two)
+                                    aug_volume_one,aug_volume_two, pred_one, pred_two, volume_track, pred_track,volume_aug_track, pred_aug_track )
                 if torch.cuda.is_available(): GPUtil.showUtilization(all=True)
 
             if iter_total - self.start_iter == 0:

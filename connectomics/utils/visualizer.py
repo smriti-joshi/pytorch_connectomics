@@ -27,7 +27,8 @@ class Visualizer(object):
                 colors[0] = torch.zeros(3) # make background black
                 self.semantic_colors[topt] = torch.stack(colors, 0)
 
-    def visualize(self, volume, label, output, weight, iter_total, writer, volume_aug_1= None, volume_aug_2= None, output_aug_1 = None, output_aug_2 = None, val=False):
+    def visualize(self, volume, label, output, weight, iter_total, writer, volume_aug_1= None, 
+                        volume_aug_2= None, output_aug_1 = None, output_aug_2 = None, volume_track = None, output_track = None, volume_aug_track = None, output_aug_track = None, val=False):
         # split the prediction into chunks along the channel dimension
         output = self.act(output)
         assert len(output) == len(label)
@@ -35,8 +36,13 @@ class Visualizer(object):
         if self.cfg.MODEL.UDA:
             output_aug_1 = self.act(output_aug_1)
             output_aug_2 = self.act(output_aug_2)
+            output_track = self.act(output_track)
+            output_aug_track = self.act(output_aug_track)
+            
             assert len(output_aug_1) == len(label)
             assert len(output_aug_2) == len(label)
+            assert len(output_track) == len(label)
+            assert len(output_aug_track) == len(label)
           
         for idx in range(len(self.cfg.MODEL.TARGET_OPT)):
             topt = self.cfg.MODEL.TARGET_OPT[idx]
@@ -46,6 +52,8 @@ class Visualizer(object):
                 if self.cfg.MODEL.UDA:
                     output_aug_1[idx] = self.get_semantic_map(output_aug_1[idx], topt)
                     output_aug_2[idx] = self.get_semantic_map(output_aug_2[idx], topt)
+                    output_track[idx] = self.get_semantic_map(output_track[idx], topt)
+                    output_aug_track[idx] = self.get_semantic_map(output_aug_track[idx], topt)
 
             if topt[0] == '5':
                 output[idx] = decode_quantize(output[idx], mode='max').unsqueeze(1)
@@ -54,6 +62,8 @@ class Visualizer(object):
                 if self.cfg.MODEL.UDA:
                     output_aug_1[idx] = decode_quantize(output_aug_1[idx], mode='max') #.unsqueeze(1)
                     output_aug_2[idx] = decode_quantize(output_aug_2[idx], mode='max') #.unsqueeze(1)
+                    output_track[idx] = decode_quantize(output_track[idx], mode='max') #.unsqueeze(1)
+                    output_aug_track[idx] = decode_quantize(output_aug_track[idx], mode='max') #.unsqueeze(1)
                     # temp_label = output_aug_1[idx].copy().astype(np.float32)[:, np.newaxis]
                     # label[idx] = temp_label / temp_label.max() + 1e-6
 
@@ -77,15 +87,16 @@ class Visualizer(object):
             
             if self.cfg.MODEL.UDA:
                 self.visualize_consecutive(volume, label[idx], output[idx], weight_maps, iter_total, 
-                                       writer, volume_aug_1, volume_aug_2, output_aug_1[idx], output_aug_2[idx], RGB=RGB, vis_name=vis_name)
+                                       writer, volume_aug_1, volume_aug_2, volume_track, volume_aug_track,  output_aug_1[idx], output_aug_2[idx], output_track[idx], output_aug_track[idx], RGB=RGB, vis_name=vis_name)
             else:
                 self.visualize_consecutive(volume, label[idx], output[idx], weight_maps, iter_total, 
                                        writer, RGB=RGB, vis_name=vis_name)
 
     def visualize_consecutive(self, volume, label, output, weight_maps, iteration, 
-                              writer, volume_aug_1= None, volume_aug_2= None, output_aug_1= None, output_aug_2= None, RGB=False, vis_name='0_0'):
+                              writer, volume_aug_1= None, volume_aug_2= None, volume_track = None, volume_aug_track = None, 
+                              output_aug_1= None, output_aug_2= None, output_track = None, output_aug_track = None, RGB=False, vis_name='0_0'):
 
-        volume, label, output, weight_maps, volume_aug_1, volume_aug_2, output_aug_1, output_aug_2 = self.prepare_data(volume, label, output, weight_maps, volume_aug_1, volume_aug_2, output_aug_1, output_aug_2)
+        volume, label, output, weight_maps, volume_aug_1, volume_aug_2, volume_track, volume_aug_track, output_aug_1, output_aug_2, output_track, output_aug_track = self.prepare_data(volume, label, output, weight_maps, volume_aug_1, volume_aug_2, volume_track, volume_aug_track, output_aug_1, output_aug_2, output_track, output_aug_track)
         
         sz = volume.size() # z,c,y,x
         canvas = []
@@ -99,12 +110,16 @@ class Visualizer(object):
             if self.cfg.MODEL.UDA:
                 output_aug_1_visual = [output_aug_1.detach().cpu()]
                 output_aug_2_visual = [output_aug_2.detach().cpu()]
+                output_track_visual = [output_track.detach().cpu()]
+                output_aug_track_visual = [output_aug_track.detach().cpu()]
         else:
             output_visual = [self.vol_reshape(output[:,i], sz) for i in range(sz[1])]
             label_visual = [self.vol_reshape(label[:,i], sz) for i in range(sz[1])]
             if self.cfg.MODEL.UDA:
                 output_aug_1_visual = [self.vol_reshape(output_aug_1[:,i], sz) for i in range(sz[1])]
                 output_aug_2_visual = [self.vol_reshape(output_aug_2[:,i], sz) for i in range(sz[1])]
+                output_track_visual = [self.vol_reshape(output_track[:,i], sz) for i in range(sz[1])]
+                output_aug_track_visual = [self.vol_reshape(output_aug_track[:,i], sz) for i in range(sz[1])]
 
         weight_visual = []
         for key in weight_maps.keys():
@@ -120,15 +135,38 @@ class Visualizer(object):
             canvas_uda = []
             volume_aug_1_visual = volume_aug_1.detach().cpu().expand(sz[0],3,sz[2],sz[3])
             volume_aug_2_visual = volume_aug_2.detach().cpu().expand(sz[0],3,sz[2],sz[3])
-            canvas_uda.append(volume_aug_1_visual)
-            canvas_uda.append(volume_aug_2_visual)
+            output_aug_1_visual = torch.cat(output_aug_1_visual)
+            output_aug_2_visual = torch.cat(output_aug_2_visual)
+            for vol1, vol2, out1, out2 in zip(volume_aug_1_visual, volume_aug_2_visual, output_aug_1_visual, output_aug_2_visual):
+                canvas_uda.append(torch.unsqueeze(vol1, 0))
+                canvas_uda.append(torch.unsqueeze(out1, 0))
+                canvas_uda.append(torch.unsqueeze(vol2, 0))
+                canvas_uda.append(torch.unsqueeze(out2, 0))
 
-            canvas_uda = canvas_uda + output_aug_1_visual + output_aug_2_visual
+            # canvas_uda = canvas_uda + output_aug_1_visual + output_aug_2_visual
             canvas_merge = torch.cat(canvas_uda, 0)
             canvas_show_uda = vutils.make_grid(canvas_merge, nrow=8, normalize=True, scale_each=True)
             writer.add_image('Consecutive_uda%s' % vis_name, canvas_show_uda, iteration)
 
-    def prepare_data(self, volume, label, output, weight_maps, volume_aug_1, volume_aug_2, output_aug_1, output_aug_2):
+            canvas_tracker = []
+            volume_track_visual = volume_track.detach().cpu().expand(sz[0],3,sz[2],sz[3])
+            volume_aug_track_visual = volume_aug_track.detach().cpu().expand(sz[0],3,sz[2],sz[3])
+
+            output_track_visual = torch.cat(output_track_visual)
+            output_aug_track_visual = torch.cat(output_aug_track_visual)
+
+            for vol1, out1, vol2, out2 in zip(volume_track_visual, output_track_visual, volume_aug_track_visual, output_aug_track_visual):
+                canvas_tracker.append(torch.unsqueeze(vol1, 0))
+                canvas_tracker.append(torch.unsqueeze(out1, 0))
+                canvas_tracker.append(torch.unsqueeze(vol2, 0))
+                canvas_tracker.append(torch.unsqueeze(out2, 0))
+
+            canvas_merge = torch.cat(canvas_tracker, 0)
+            canvas_show_tracker = vutils.make_grid(canvas_merge, nrow=8, normalize=True, scale_each=True)
+            writer.add_image('Target_tracker%s' % vis_name, canvas_show_tracker, iteration)
+
+
+    def prepare_data(self, volume, label, output, weight_maps, volume_aug_1, volume_aug_2, volume_track, volume_aug_track, output_aug_1, output_aug_2, output_track, output_aug_track):
         ndim = volume.ndim
         assert ndim in [4, 5] 
         is_3d = (ndim == 5)
@@ -142,11 +180,16 @@ class Visualizer(object):
             volume_aug_2 = self.permute_truncate(volume_aug_2, is_3d)
             output_aug_1 = self.permute_truncate(output_aug_1, is_3d)
             output_aug_2 = self.permute_truncate(output_aug_2, is_3d)
+            volume_track = self.permute_truncate(volume_track, is_3d)
+            volume_aug_track = self.permute_truncate(volume_aug_track, is_3d)
+            output_track = self.permute_truncate(output_track, is_3d)
+            output_aug_track = self.permute_truncate(output_aug_track, is_3d)
+
 
         for key in weight_maps.keys():
             weight_maps[key] = self.permute_truncate(weight_maps[key], is_3d)
 
-        return volume, label, output, weight_maps, volume_aug_1, volume_aug_2, output_aug_1, output_aug_2
+        return volume, label, output, weight_maps, volume_aug_1, volume_aug_2, volume_track, volume_aug_track, output_aug_1, output_aug_2, output_track, output_aug_track
 
     def permute_truncate(self, data, is_3d=False):
         if is_3d:

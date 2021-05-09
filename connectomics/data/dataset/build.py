@@ -125,10 +125,14 @@ def _get_input(cfg, mode='train', uda = False, rank=None):
         #     volume[i] = volume_sup
         
         ######################################################
+        volume_track = None
+        if uda:
+            volume_track = volume[i][50:55, 500:629, 500:629]
 
         print(f"volume shape (original): {volume[i].shape}")
         if cfg.DATASET.NORMALIZE_RANGE:
             volume[i] = normalize_range(volume[i])
+
         if (np.array(cfg.DATASET.DATA_SCALE)!=1).any():
             volume[i] = zoom(volume[i], cfg.DATASET.DATA_SCALE, order=1)
         volume[i] = np.pad(volume[i], get_padsize(pad_size), 'reflect')
@@ -160,7 +164,7 @@ def _get_input(cfg, mode='train', uda = False, rank=None):
             valid_mask[i] = np.pad(valid_mask[i], get_padsize(pad_size), 'reflect')
             print(f"valid_mask shape: {label[i].shape}")
                  
-    return volume, label, valid_mask
+    return volume, label, valid_mask, volume_track
 
 def get_dataset(cfg, augmentor, mode='train', rank=None):
     r"""Prepare dataset for training and inference.
@@ -229,7 +233,7 @@ def get_dataset(cfg, augmentor, mode='train', rank=None):
                               **shared_kwargs)
 
     else: # build VolumeDataset
-        volume, label, valid_mask = _get_input(cfg, mode=mode, rank=rank, uda = False)
+        volume, label, valid_mask, _ = _get_input(cfg, mode=mode, rank=rank, uda = False)
         dataset = VolumeDataset(volume=volume, label=label, valid_mask=valid_mask,
                                 iter_num=iter_num, **shared_kwargs)
 
@@ -301,8 +305,8 @@ def get_dataset_uda(cfg, augmentor, mode='train', rank=None):
         "data_std": cfg.DATASET.STD,
     }
     
-    volume, label, valid_mask = _get_input(cfg, mode=mode, uda = True, rank=rank)
-    dataset = VolumeDatasetUDA( shared_kwargs, volume=volume, iter_num=iter_num)
+    volume, label, valid_mask, volume_track = _get_input(cfg, mode=mode, uda = True, rank=rank)
+    dataset = VolumeDatasetUDA( shared_kwargs, volume=volume, volume_track= volume_track, iter_num=iter_num)
     return dataset
 
 def build_dataloader_uda(cfg, augmentor, mode='train', dataset=None, rank=None):

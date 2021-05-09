@@ -65,13 +65,17 @@ class TestBatch:
 
 class UDABatch:
     def __init__(self, batch):
-        pos, out_input_one, out_input_two = zip(*batch)
+        pos, out_input_one, out_input_two, out_volume_track, out_volume_aug_track = zip(*batch)
         self.pos = pos
         self.out_input_one = torch.from_numpy(np.stack(out_input_one, 0))
         self.out_input_two = torch.from_numpy(np.stack(out_input_two, 0))
+        self.out_volume_track = torch.from_numpy(np.stack(out_volume_track, 0))
+        self.out_volume_aug_track = torch.from_numpy(np.stack(out_volume_aug_track, 0))
 
        # custom memory pinning method on custom type
     def pin_memory(self):
         self.out_input_one = self.out_input_one.pin_memory()
         self.out_input_two = self.out_input_two.pin_memory()
+        self.out_volume_track = self.out_volume_track.pin_memory()
+        self.out_volume_aug_track = self.out_volume_aug_track.pin_memory()
         return self
