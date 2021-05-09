@@ -38,16 +38,18 @@ SOLVER:
   ITERATION_STEP: 1
   ITERATION_SAVE: 5000
   ITERATION_TOTAL: 100000
-  SAMPLES_PER_BATCH: 8
+  SAMPLES_PER_BATCH: 4
+  
 INFERENCE:
-  INPUT_SIZE: [5, 129, 129]
+  INPUT_SIZE: [5, 129, 129] # Inference stride should be roughly half
   OUTPUT_SIZE: [5, 129, 129] # odd because detectron paper says that better on border with odd values
   OUTPUT_ACT: ["sigmoid"]
-  IMAGE_NAME: "test-input.tif" # or path to your test images
+  IMAGE_NAME: "valid_image.h5" # or path to your test images
+  INPUT_PATH: '/net/cremi/smjoshi/espaces/travail/harvard/dev_pyco/pytorch_connectomics/SNEMI3D/val'
   OUTPUT_PATH: "outputs/SNEMI3D/test"
   OUTPUT_NAME: "result.h5"
   PAD_SIZE: [4, 64, 64]
   AUG_MODE: "min"
   AUG_NUM: 4
-  STRIDE: [8, 128, 128]
+  STRIDE: [2, 64, 64]
   SAMPLES_PER_BATCH: 8
