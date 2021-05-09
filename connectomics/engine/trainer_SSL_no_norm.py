@@ -23,7 +23,7 @@ from ..data.utils import get_padsize, array_unpad
 from ..engine.trainer import Trainer
 from torch.utils.tensorboard import SummaryWriter
 
-class TrainerUDA(Trainer):
+class TrainerUDA_2(Trainer):
     r"""Trainer class for supervised learning.
     Args:
         cfg (yacs.config.CfgNode): YACS configuration options.
@@ -75,64 +75,73 @@ class TrainerUDA(Trainer):
             target, weight = sample.out_target_l, sample.out_weight_l
             self.data_time = time.perf_counter() - self.start_time
 
-            sample_uda = next(self.dataloader_ssl)
-            aug_volume_one, aug_volume_two = sample_uda.out_input_one, sample_uda.out_input_two
-            volume = torch.cat((volume, aug_volume_one, aug_volume_two), 2)
-        
-            
             # prediction
             volume = volume.to(self.device, non_blocking=True)
             with autocast(enabled=self.cfg.MODEL.MIXED_PRECESION):
                 pred = self.model(volume)
-                pred, pred_one, pred_two = pred[:, :, 0:5], pred[:, :, 5:10], pred[:, :, 10:15]
                 loss_sup, losses_vis = self.criterion(pred, target, weight)
             
             ##### Unsupervised #####
 
-                pred_one = sigmoid(pred_one)
-                pred_two = sigmoid(pred_two)
-                mask = (pred_one > 0.95) * (pred_two > 0.95)
+            # load data
+            sample_uda = next(self.dataloader_ssl)
+            aug_volume_one, aug_volume_two, volume_track, volume_aug_track = sample_uda.out_input_one, sample_uda.out_input_two, sample_uda.out_volume_track, sample_uda.out_volume_aug_track
 
-                # loss_ssl = self.dice_loss_batch(pred_one * mask, pred_two * mask)
-                loss_ssl = self.weighted_mse_loss(pred_one * mask, pred_two * mask)
-
-                loss_entrp = torch.abs(torch.sum(-sigmoid(pred) * torch.log(sigmoid(pred) + (sigmoid(pred) == 0).float())) 
-                            - 0.5 * (torch.sum(-pred_one * torch.log(pred_one + (pred_one == 0).float())) + 
-                            torch.sum(-pred_two * torch.log(pred_two + (pred_two == 0).float()))))
+            # prediction
+            aug_volume_one = aug_volume_one.to(self.device, non_blocking=True)
+            aug_volume_two = aug_volume_two.to(self.device, non_blocking=True)
+            volume_track = volume_track.to(self.device, non_blocking=True)
+            volume_aug_track = volume_aug_track.to(self.device, non_blocking=True)
             
-            # loss = loss_sup + loss_ssl #+ 0.0001 * loss_entrp log2021-04-24_17-55-30  /// after batch-norm
-            loss = loss_sup + 10 * loss_ssl #+ 0.00001 * loss_entrp
+            with autocast(enabled=self.cfg.MODEL.MIXED_PRECESION):
+                pred_one = self.model(aug_volume_one)
+                pred_two = self.model(aug_volume_two)
+                pred_track = self.model(volume_track)
+                pred_aug_track = self.model(volume_aug_track)
+                # loss_ssl = float(self.weighted_mse_loss(pred_one * mask, pred_two * mask))
+
+                loss_entrp = self.entropy_loss(pred, pred_one, pred_two)
+               
+                loss_ssl = self.weighted_mse_loss(pred_two, pred_one, 0.8)
+
+
+            # loss = loss_sup +  10 * loss_ssl  #+ 0.0001 * loss_entrp log2021-04-24_17-55-30
+            loss = loss_sup + 10 * loss_ssl + + 0.0001 * loss_entrp
 
             losses_vis['uda_mse_loss'] = loss_ssl
             losses_vis['sup_loss'] = loss_sup
             losses_vis['entrp_loss'] = loss_entrp
 
-            self._train_misc(loss, pred, volume[:,:,0:5], target, weight,iter_total, losses_vis, aug_volume_one,aug_volume_two, 
-                pred_one, pred_two)
+            self._train_misc(loss, pred, volume, target, weight,iter_total, losses_vis, aug_volume_one,aug_volume_two, 
+                pred_one, pred_two, volume_track, pred_track, volume_aug_track, pred_aug_track)
+            
             if i % 10 == 0:
-                print('[Iteration %05d] supervised_loss=%.5f ssl_loss=%.5f' % (i, loss_sup, loss_ssl))
+                print('[Iteration %05d] supervised_loss=%.5f' % (i, loss_sup))
         self.maybe_save_swa_model()
 
-    def weighted_mse_loss(self, pred, target, weight=None):
+    def weighted_mse_loss(self, pred, target, thresh, weight=None):
         pred = torch.sigmoid(pred)
         target = torch.sigmoid(target)
+
+        mask = (pred > thresh) * (target > thresh)
+
+        pred = pred * mask
+        target = target * mask
+
         s1 = torch.prod(torch.tensor(pred.size()[2:]).float())
         s2 = pred.size()[0]
         norm_term = (s1 * s2).to(pred.device)
         if weight is None:
             return torch.sum((pred - target) ** 2) / norm_term
         return torch.sum(weight * (pred - target) ** 2) / norm_term
-    
-    def dice_loss_batch(self, pred, target):
-        iflat = pred.view(-1)
-        tflat = target.view(-1)
-        intersection = (iflat * tflat).sum()
-        self.power = 1
-        self.smooth = 100
-        if self.power==1:
-            loss = 1 - ((2. * intersection + self.smooth) / 
-                (iflat.sum() + tflat.sum() + self.smooth))
-        else:
-            loss = 1 - ((2. * intersection + self.smooth) / 
-                ( (iflat**self.power).sum() + (tflat**self.power).sum() + self.smooth))
-        return loss
+
+    def entropy_loss(self, pred, pred_one, pred_two):
+
+        pred = torch.sigmoid(pred)
+        pred_one = torch.sigmoid(pred_one)
+        pred_two = torch.sigmoid(pred_two)
+        
+        entropy = torch.abs(torch.sum(-pred * torch.log(pred +(pred == 0).float())) 
+                            - 0.5 * (torch.sum(-pred_one * torch.log(pred_one + (pred_one == 0).float())) + 
+                            torch.sum(-pred_two * torch.log(pred_two + (pred_two == 0).float()))))
+        return entropy

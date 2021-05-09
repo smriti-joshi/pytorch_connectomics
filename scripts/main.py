@@ -12,6 +12,7 @@ import torch.backends.cudnn as cudnn
 from connectomics.config import load_cfg, save_all_cfg
 from connectomics.engine import Trainer
 from connectomics.engine.trainerSSL import TrainerUDA
+from connectomics.engine.trainer_SSL_no_norm import TrainerUDA_2
 
 def get_args():
     parser = argparse.ArgumentParser(description="Model Training & Inference")
@@ -68,7 +69,7 @@ def main():
     mode = 'test' if args.inference else 'train'
 
     if cfg.MODEL.UDA and mode == 'train':
-        trainer = TrainerUDA(cfg, device, mode, 
+        trainer = TrainerUDA_2(cfg, device, mode, 
                     rank=args.local_rank,
                     checkpoint=args.checkpoint)
         print("UDA mode")
